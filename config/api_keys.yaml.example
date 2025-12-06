@@ -1,0 +1,27 @@
+# BullBear Arena - API Configuration Template
+# 
+# Description使用说明:
+# 1. 复制此文件为 api_keys.yaml copy yourfile as 
+# 2. 填入你的真实API密钥 input your real API KEY
+
+# DeepSeek API (主要AI模型)
+deepseek:
+  api_key: "sk-your-deepseek-api-key-here"
+  api_url: "https://api.deepseek.com/v1/chat/completions"
+  model: "deepseek-chat"
+
+# Alpha Vantage (可选 - 用于更详细的财务数据)
+alpha_vantage:
+  api_key: "your-alpha-vantage-key"
+  base_url: "https://www.alphavantage.co/query"
+
+# News API (可选 - 用于情绪分析)
+news_api:
+  api_key: "your-news-api-key"
+  base_url: "https://newsapi.org/v2"
+
+# 其他配置
+settings:
+  verbose: false
+  cache_enabled: true
+  timeout: 60
