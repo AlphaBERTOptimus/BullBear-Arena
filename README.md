@@ -2,7 +2,7 @@
 
 > Multi-Agent AI System for US Stock Analysis with Adversarial Voting Mechanism
 
-一个基于对抗投票机制的美股分析多智能体系统,由资深数据科学家打造,专为金融机构量化分析需求设计。
+一个基于对抗投票机制的美股分析多智能体系统,通过多智能体对抗投票，形成最终买入和卖出决定。
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
