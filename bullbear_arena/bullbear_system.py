@@ -32,7 +32,7 @@ class BullBearSystem:
         from .agents.technical_agent import TechnicalAgent
         from .agents.sentiment_agent import SentimentAgent
         from .agents.risk_agent import RiskAgent
-        from .ensemble.arena_judge import ArenaJudge
+        from .agents.arena_judge import ArenaJudge
         
         self.api_key = api_key
         
