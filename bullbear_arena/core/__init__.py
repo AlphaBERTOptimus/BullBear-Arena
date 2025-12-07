@@ -1,4 +1,4 @@
-from .core.question_router import QuestionRouter
-from .core.flexible_executor import FlexibleExecutor
+from .question_router import QuestionRouter
+from .flexible_executor import FlexibleExecutor
 
 __all__ = ["QuestionRouter", "FlexibleExecutor"]
