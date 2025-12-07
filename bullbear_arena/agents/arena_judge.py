@@ -134,16 +134,24 @@ class ArenaJudge:
         base_weights = horizon.recommended_weights.copy()
         adjustment_factors = []
         
-        for output in agent_outputs:
-            agent_type = output['agent_type']
-            confidence = output['confidence']
+        # Map outputs to agent types based on order
+        agent_types = ['fundamental', 'technical', 'sentiment', 'risk']
+        
+        for i, output in enumerate(agent_outputs):
+            # Get agent_type from output or use index
+            agent_type = output.get('agent_type', agent_types[i] if i < len(agent_types) else 'unknown')
+            
+            if agent_type not in base_weights:
+                continue
+            
+            confidence = output.get('confidence', 0.7)
             
             if confidence > 0.85:
                 base_weights[agent_type] *= 1.1
-                adjustment_factors.append(f"{output['agent_name']} high confidence (+10%)")
+                adjustment_factors.append(f"{output.get('agent_name', agent_type)} high confidence (+10%)")
             elif confidence < 0.60:
                 base_weights[agent_type] *= 0.9
-                adjustment_factors.append(f"{output['agent_name']} low confidence (-10%)")
+                adjustment_factors.append(f"{output.get('agent_name', agent_type)} low confidence (-10%)")
         
         total = sum(base_weights.values())
         final_weights = {k: v/total for k, v in base_weights.items()}
@@ -167,8 +175,12 @@ class ArenaJudge:
             'risk': weights.risk_weight
         }
         
-        for output in agent_outputs:
-            agent_type = output['agent_type']
+        # Map outputs to agent types based on order
+        agent_types = ['fundamental', 'technical', 'sentiment', 'risk']
+        
+        for i, output in enumerate(agent_outputs):
+            # Get agent_type from output or use index
+            agent_type = output.get('agent_type', agent_types[i] if i < len(agent_types) else 'unknown')
             weight = weight_map.get(agent_type, 0.25)
             
             detailed_analysis = {
@@ -178,13 +190,13 @@ class ArenaJudge:
             }
             
             vote = AgentVote(
-                agent_name=output['agent_name'],
+                agent_name=output.get('agent_name', agent_type.title()),
                 agent_type=agent_type,
-                recommendation=output['recommendation'],
-                confidence=output['confidence'],
-                score=output['score'],
+                recommendation=output.get('recommendation', 'HOLD'),
+                confidence=output.get('confidence', 0.7),
+                score=output.get('score', 50.0),
                 vote_weight=weight,
-                weighted_score=output['score'] * weight,
+                weighted_score=output.get('score', 50.0) * weight,
                 detailed_analysis=detailed_analysis
             )
             votes.append(vote)
