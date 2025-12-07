@@ -15,7 +15,7 @@
 5. 宽泛市场问题
 """
 
-from typing import Dict, List, Any
+from typing import Dict, List
 
 # ============================================================================
 # 灵活执行器
@@ -139,7 +139,7 @@ class FlexibleExecutor:
                 "ticker": ticker,
                 "agents_used": ["fundamental", "technical", "sentiment", "risk"],
                 "agent_results": agent_results,
-                "judge_result": judge_result.model_dump(),
+                "judge_result": judge_result.model_dump() if hasattr(judge_result, 'model_dump') else judge_result,
                 "final_recommendation": judge_result.final_recommendation,
                 "confidence": judge_result.confidence
             }
@@ -166,7 +166,7 @@ class FlexibleExecutor:
             "agent_type": agent_type,
             "agents_used": [agent_type],
             "result": result,
-            "summary": result["summary"]
+            "summary": result.get("summary", "")
         }
     
     def _handle_multiple_agents(self, routing) -> Dict:
@@ -233,7 +233,7 @@ class FlexibleExecutor:
         
         for agent_type in agents_used:
             scores = {
-                ticker: results[agent_type]["score"]
+                ticker: results[agent_type].get("score", 0)
                 for ticker, results in comparison_results.items()
             }
             
@@ -244,8 +244,9 @@ class FlexibleExecutor:
                 for ticker, score in sorted_tickers
             ]
             
-            summary["best_performers"][agent_type] = sorted_tickers[0][0]
-            summary["worst_performers"][agent_type] = sorted_tickers[-1][0]
+            if sorted_tickers:
+                summary["best_performers"][agent_type] = sorted_tickers[0][0]
+                summary["worst_performers"][agent_type] = sorted_tickers[-1][0]
         
         return summary
     
