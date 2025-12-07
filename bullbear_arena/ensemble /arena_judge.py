@@ -1,24 +1,24 @@
 # ============================================================================
-# BullBear Arena - 竞技场裁判
+# BullBear Arena - Arena Judge
 # bullbear_arena/ensemble/arena_judge.py
 # ============================================================================
 """
-Arena Judge - 🏆 最终裁判
+Arena Judge - Final Arbiter
 
-角色: 资深财经分析师
-职责: 整合4个Agent的分析,进行专业投资决策
+Role: Senior financial analyst
+Responsibility: Integrate analysis from 4 agents for professional investment decisions
 
-投资哲学:
-- 长期投资(>1年): 基本面50% + 风险30% + 技术10% + 情绪10%
-- 中期投资(3-12月): 技术35% + 基本面30% + 情绪20% + 风险15%
-- 短期投资(<3月): 技术45% + 情绪30% + 风险15% + 基本面10%
+Investment Philosophy:
+- Long-term (>1 year): Fundamental 50% + Risk 30% + Technical 10% + Sentiment 10%
+- Medium-term (3-12 months): Technical 35% + Fundamental 30% + Sentiment 20% + Risk 15%
+- Short-term (<3 months): Technical 45% + Sentiment 30% + Risk 15% + Fundamental 10%
 
-核心机制:
-1. 投资周期智能识别
-2. 动态权重分配
-3. 完整数据展示
-4. AI深度分析
-5. 专业风险提示
+Core Mechanisms:
+1. Smart investment horizon detection
+2. Dynamic weight allocation
+3. Complete data presentation
+4. AI deep analysis
+5. Professional risk disclosure
 """
 
 import json
@@ -28,18 +28,18 @@ from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field
 
 # ============================================================================
-# 数据模型定义
+# Data Models
 # ============================================================================
 
 class InvestmentHorizon(BaseModel):
-    """投资时间周期"""
-    horizon_type: str = Field(description="投资周期: LONG_TERM/MEDIUM_TERM/SHORT_TERM")
-    duration_description: str = Field(description="周期描述")
-    data_timeframe_used: str = Field(description="使用的数据时间范围")
-    recommended_weights: Dict[str, float] = Field(description="推荐权重分配")
+    """Investment time horizon"""
+    horizon_type: str = Field(description="Investment horizon: LONG_TERM/MEDIUM_TERM/SHORT_TERM")
+    duration_description: str = Field(description="Duration description")
+    data_timeframe_used: str = Field(description="Data timeframe used")
+    recommended_weights: Dict[str, float] = Field(description="Recommended weight distribution")
 
 class AgentVote(BaseModel):
-    """Agent投票"""
+    """Agent vote"""
     agent_name: str
     agent_type: str
     recommendation: str
@@ -47,10 +47,10 @@ class AgentVote(BaseModel):
     score: float
     vote_weight: float
     weighted_score: float
-    detailed_analysis: Dict = Field(description="详细分析数据")
+    detailed_analysis: Dict = Field(description="Detailed analysis data")
 
 class VotingBreakdown(BaseModel):
-    """投票分解"""
+    """Voting breakdown"""
     buy_votes: int
     hold_votes: int
     sell_votes: int
@@ -60,16 +60,16 @@ class VotingBreakdown(BaseModel):
     consensus_level: str
 
 class WeightDistribution(BaseModel):
-    """权重分配"""
+    """Weight distribution"""
     fundamental_weight: float
     technical_weight: float
     sentiment_weight: float
     risk_weight: float
-    weighting_rationale: str = Field(description="权重分配理由")
-    adjustment_factors: List[str] = Field(description="调整因素")
+    weighting_rationale: str = Field(description="Weight allocation rationale")
+    adjustment_factors: List[str] = Field(description="Adjustment factors")
 
 class ArenaJudgeResult(BaseModel):
-    """竞技场裁判结果"""
+    """Arena Judge result"""
     ticker: str
     analysis_date: str
     investment_horizon: InvestmentHorizon
@@ -79,41 +79,41 @@ class ArenaJudgeResult(BaseModel):
     agent_votes: List[AgentVote]
     voting_breakdown: VotingBreakdown
     weight_distribution: WeightDistribution
-    detailed_reasoning: str = Field(description="详细推理过程")
-    action_plan: str = Field(description="行动计划")
-    risk_disclosure: str = Field(description="风险提示")
+    detailed_reasoning: str = Field(description="Detailed reasoning")
+    action_plan: str = Field(description="Action plan")
+    risk_disclosure: str = Field(description="Risk disclosure")
     key_insights: List[str]
     divergent_views: List[str]
 
 # ============================================================================
-# Arena Judge类
+# Arena Judge Class
 # ============================================================================
 
 class ArenaJudge:
     """
-    竞技场裁判 - 专业财经分析师
+    Arena Judge - Professional financial analyst
     
-    投资哲学:
-    - 长期投资(>1年): 基本面50% + 风险30% + 技术10% + 情绪10%
-    - 中期投资(3-12月): 技术35% + 基本面30% + 情绪20% + 风险15%
-    - 短期投资(<3月): 技术45% + 情绪30% + 风险15% + 基本面10%
+    Investment Philosophy:
+    - Long-term (>1 year): Fundamental 50% + Risk 30% + Technical 10% + Sentiment 10%
+    - Medium-term (3-12 months): Technical 35% + Fundamental 30% + Sentiment 20% + Risk 15%
+    - Short-term (<3 months): Technical 45% + Sentiment 30% + Risk 15% + Fundamental 10%
     """
     
     def __init__(self, api_key: str, api_url: str = "https://api.deepseek.com/v1/chat/completions"):
         """
-        初始化Arena Judge
+        Initialize Arena Judge
         
         Args:
-            api_key: DeepSeek API密钥
-            api_url: API端点
+            api_key: DeepSeek API key
+            api_url: API endpoint
         """
         self.api_key = api_key
         self.api_url = api_url
         self.model = "deepseek-chat"
-        self.agent_name = "🏆 Arena Judge"
+        self.agent_name = "Arena Judge"
     
     def call_deepseek_api(self, prompt: str) -> str:
-        """调用DeepSeek API"""
+        """Call DeepSeek API"""
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
@@ -136,19 +136,19 @@ class ArenaJudge:
         investment_period: str = "LONG_TERM"
     ) -> InvestmentHorizon:
         """
-        确定投资时间周期和数据范围
+        Determine investment horizon and data range
         
         Args:
-            ticker: 股票代码
-            investment_period: 投资周期 (LONG_TERM/MEDIUM_TERM/SHORT_TERM)
+            ticker: Stock ticker
+            investment_period: Investment period (LONG_TERM/MEDIUM_TERM/SHORT_TERM)
             
         Returns:
-            InvestmentHorizon: 投资周期配置
+            InvestmentHorizon: Investment horizon configuration
         """
         horizon_configs = {
             "LONG_TERM": {
-                "duration": "1年以上长期投资",
-                "data_range": "过去3-5年数据",
+                "duration": "Long-term investment (>1 year)",
+                "data_range": "Past 3-5 years data",
                 "weights": {
                     "fundamental": 0.50,
                     "risk": 0.30,
@@ -157,8 +157,8 @@ class ArenaJudge:
                 }
             },
             "MEDIUM_TERM": {
-                "duration": "3-12个月中期投资",
-                "data_range": "过去1-2年数据",
+                "duration": "Medium-term investment (3-12 months)",
+                "data_range": "Past 1-2 years data",
                 "weights": {
                     "technical": 0.35,
                     "fundamental": 0.30,
@@ -167,8 +167,8 @@ class ArenaJudge:
                 }
             },
             "SHORT_TERM": {
-                "duration": "3个月内短期投资",
-                "data_range": "过去3-6个月数据",
+                "duration": "Short-term investment (<3 months)",
+                "data_range": "Past 3-6 months data",
                 "weights": {
                     "technical": 0.45,
                     "sentiment": 0.30,
@@ -193,35 +193,33 @@ class ArenaJudge:
         horizon: InvestmentHorizon
     ) -> WeightDistribution:
         """
-        智能权重分配 (基于投资周期)
+        Smart weight allocation (based on investment horizon)
         
         Args:
-            agent_outputs: 4个Agent的输出
-            horizon: 投资周期配置
+            agent_outputs: Outputs from 4 agents
+            horizon: Investment horizon configuration
             
         Returns:
-            WeightDistribution: 权重分配结果
+            WeightDistribution: Weight distribution result
         """
         base_weights = horizon.recommended_weights.copy()
         adjustment_factors = []
         
-        # 置信度调整
         for output in agent_outputs:
             agent_type = output['agent_type']
             confidence = output['confidence']
             
             if confidence > 0.85:
                 base_weights[agent_type] *= 1.1
-                adjustment_factors.append(f"{output['agent_name']}置信度高(+10%)")
+                adjustment_factors.append(f"{output['agent_name']} high confidence (+10%)")
             elif confidence < 0.60:
                 base_weights[agent_type] *= 0.9
-                adjustment_factors.append(f"{output['agent_name']}置信度低(-10%)")
+                adjustment_factors.append(f"{output['agent_name']} low confidence (-10%)")
         
-        # 标准化
         total = sum(base_weights.values())
         final_weights = {k: v/total for k, v in base_weights.items()}
         
-        rationale = f"基于{horizon.duration_description},采用专业权重配置"
+        rationale = f"Based on {horizon.duration_description}, using professional weight configuration"
         
         return WeightDistribution(
             fundamental_weight=final_weights['fundamental'],
@@ -238,14 +236,14 @@ class ArenaJudge:
         weights: WeightDistribution
     ) -> List[AgentVote]:
         """
-        收集详细投票 (包含完整分析数据)
+        Collect detailed votes (including complete analysis data)
         
         Args:
-            agent_outputs: 4个Agent的输出
-            weights: 权重分配
+            agent_outputs: Outputs from 4 agents
+            weights: Weight distribution
             
         Returns:
-            List[AgentVote]: 投票列表
+            List[AgentVote]: Vote list
         """
         votes = []
         weight_map = {
@@ -281,13 +279,13 @@ class ArenaJudge:
     
     def analyze_voting(self, votes: List[AgentVote]) -> VotingBreakdown:
         """
-        分析投票分布
+        Analyze voting distribution
         
         Args:
-            votes: 投票列表
+            votes: Vote list
             
         Returns:
-            VotingBreakdown: 投票分解结果
+            VotingBreakdown: Voting breakdown result
         """
         buy_votes = sum(1 for v in votes if v.recommendation == "BUY")
         hold_votes = sum(1 for v in votes if v.recommendation == "HOLD")
@@ -327,95 +325,86 @@ class ArenaJudge:
         weights: WeightDistribution
     ) -> Dict:
         """
-        AI专业裁决 (DeepSeek作为资深分析师)
+        AI professional judgment (DeepSeek as senior analyst)
         
         Args:
-            ticker: 股票代码
-            votes: 投票列表
-            breakdown: 投票分解
-            horizon: 投资周期
-            weights: 权重分配
+            ticker: Stock ticker
+            votes: Vote list
+            breakdown: Voting breakdown
+            horizon: Investment horizon
+            weights: Weight distribution
             
         Returns:
-            Dict: AI分析结果
+            Dict: AI analysis result
         """
-        prompt = f"""你是一位拥有20年经验的资深财经分析师,现在需要对 {ticker} 进行专业投资分析。
+        prompt = f"""You are a senior financial analyst with 20 years of experience. Provide professional investment analysis for {ticker}.
 
-【投资背景】
-投资周期: {horizon.duration_description}
-数据时间范围: {horizon.data_timeframe_used}
-分析日期: {datetime.now().strftime("%Y-%m-%d")}
+Investment Background:
+Investment Horizon: {horizon.duration_description}
+Data Timeframe: {horizon.data_timeframe_used}
+Analysis Date: {datetime.now().strftime("%Y-%m-%d")}
 
-【权重配置逻辑】
+Weight Configuration:
 {weights.weighting_rationale}
-- 基本面权重: {weights.fundamental_weight:.1%}
-- 技术面权重: {weights.technical_weight:.1%}
-- 情绪面权重: {weights.sentiment_weight:.1%}
-- 风险面权重: {weights.risk_weight:.1%}
+- Fundamental Weight: {weights.fundamental_weight:.1%}
+- Technical Weight: {weights.technical_weight:.1%}
+- Sentiment Weight: {weights.sentiment_weight:.1%}
+- Risk Weight: {weights.risk_weight:.1%}
 
-调整因素: {', '.join(weights.adjustment_factors) if weights.adjustment_factors else '无'}
+Adjustment Factors: {', '.join(weights.adjustment_factors) if weights.adjustment_factors else 'None'}
 
-【4个专业Agent的完整分析】
+Complete Analysis from 4 Professional Agents:
 """
         
         for vote in votes:
             prompt += f"\n{'='*60}\n"
             prompt += f"{vote.agent_name} ({vote.agent_type})\n"
             prompt += f"{'='*60}\n"
-            prompt += f"建议: {vote.recommendation}\n"
-            prompt += f"评分: {vote.score:.1f}/100\n"
-            prompt += f"置信度: {vote.confidence:.1%}\n"
-            prompt += f"权重: {vote.vote_weight:.1%}\n"
-            prompt += f"\n分析摘要:\n{vote.detailed_analysis.get('summary', '')}\n"
+            prompt += f"Recommendation: {vote.recommendation}\n"
+            prompt += f"Score: {vote.score:.1f}/100\n"
+            prompt += f"Confidence: {vote.confidence:.1%}\n"
+            prompt += f"Weight: {vote.vote_weight:.1%}\n"
+            prompt += f"\nAnalysis Summary:\n{vote.detailed_analysis.get('summary', '')}\n"
             
             if 'key_points' in vote.detailed_analysis:
-                prompt += f"\n关键点:\n{json.dumps(vote.detailed_analysis['key_points'], indent=2, ensure_ascii=False)}\n"
+                prompt += f"\nKey Points:\n{json.dumps(vote.detailed_analysis['key_points'], indent=2)}\n"
             
             if 'detailed_metrics' in vote.detailed_analysis:
-                prompt += f"\n详细指标:\n{json.dumps(vote.detailed_analysis['detailed_metrics'], indent=2, ensure_ascii=False)}\n"
+                prompt += f"\nDetailed Metrics:\n{json.dumps(vote.detailed_analysis['detailed_metrics'], indent=2)}\n"
         
         prompt += f"""
 {'='*60}
-【投票统计】
-- BUY: {breakdown.buy_votes}票 (权重{breakdown.buy_weight:.1%})
-- HOLD: {breakdown.hold_votes}票 (权重{breakdown.hold_weight:.1%})
-- SELL: {breakdown.sell_votes}票 (权重{breakdown.sell_weight:.1%})
-- 共识程度: {breakdown.consensus_level}
+Voting Statistics:
+- BUY: {breakdown.buy_votes} votes (weight {breakdown.buy_weight:.1%})
+- HOLD: {breakdown.hold_votes} votes (weight {breakdown.hold_weight:.1%})
+- SELL: {breakdown.sell_votes} votes (weight {breakdown.sell_weight:.1%})
+- Consensus Level: {breakdown.consensus_level}
 
-【你的任务】
-作为资深分析师,请综合以上所有信息,进行深度专业分析:
+Your Task:
+Provide in-depth professional analysis based on all above information:
 
-1. 仔细审查每个Agent提供的详细数据
-2. 根据投资周期({horizon.duration_description})判断各维度的重要性
-3. 识别Agent之间的分歧点和共识点
-4. 给出专业的最终投资建议
+1. Carefully review detailed data from each agent
+2. Judge importance of each dimension based on investment horizon
+3. Identify points of divergence and consensus among agents
+4. Provide professional final investment recommendation
 
-分析要点:
-- 长线投资注重基本面和风险Agent的意见
-- 中线投资着重考虑技术面的支撑位和阻力位
-- 短线投资考虑新闻的及时性,加大sentiment agent权重
-
-请以JSON格式返回:
+Return in JSON format:
 {{
   "final_recommendation": "BUY/HOLD/SELL",
   "confidence": 0.85,
   "consensus_score": 75.0,
-  "detailed_reasoning": "详细推理过程,至少300字,包括:
-    - 为什么选择这个建议
-    - 各Agent分析的权衡
-    - 关键决策因素
-    - 风险收益分析",
-  "action_plan": "具体行动建议,包括仓位、入场时机、止损位等",
-  "key_insights": ["关键洞察1", "关键洞察2", "关键洞察3"],
-  "divergent_views": ["分歧观点1", "分歧观点2"],
-  "risk_disclosure": "针对{ticker}的风险提示,至少150字"
+  "detailed_reasoning": "Detailed reasoning (at least 300 words)",
+  "action_plan": "Specific action recommendations",
+  "key_insights": ["Key insight 1", "Key insight 2", "Key insight 3"],
+  "divergent_views": ["Divergent view 1", "Divergent view 2"],
+  "risk_disclosure": "Risk disclosure specific to {ticker} (at least 150 words)"
 }}
 
-要求:
-- detailed_reasoning必须详细,体现专业分析师的思考过程
-- 必须明确说明为何采用或不采用某个Agent的建议
-- 如果是DIVIDED共识,必须详细解释决策逻辑
-- risk_disclosure必须具体,不要套话
+Requirements:
+- detailed_reasoning must be comprehensive
+- Must clearly explain why certain agent recommendations were adopted or not
+- If DIVIDED consensus, must explain decision logic in detail
+- risk_disclosure must be specific, not generic
 """
         
         try:
@@ -427,11 +416,11 @@ class ArenaJudge:
                 "final_recommendation": "HOLD",
                 "confidence": 0.5,
                 "consensus_score": 50.0,
-                "detailed_reasoning": "AI分析暂时不可用,建议人工复核",
-                "action_plan": "等待AI系统恢复",
-                "key_insights": ["系统受限"],
-                "divergent_views": ["数据不完整"],
-                "risk_disclosure": "投资有风险,决策需谨慎。本分析仅供参考,不构成投资建议。"
+                "detailed_reasoning": "AI analysis temporarily unavailable, recommend manual review",
+                "action_plan": "Wait for AI system recovery",
+                "key_insights": ["System limited"],
+                "divergent_views": ["Incomplete data"],
+                "risk_disclosure": "Investment involves risks. This analysis is for reference only."
             }
     
     def judge(
@@ -444,18 +433,18 @@ class ArenaJudge:
         investment_period: str = "LONG_TERM"
     ) -> ArenaJudgeResult:
         """
-        执行专业裁决
+        Execute professional judgment
         
         Args:
-            ticker: 股票代码
-            fundamental_output: 基本面Agent输出
-            technical_output: 技术面Agent输出
-            sentiment_output: 情绪面Agent输出
-            risk_output: 风险面Agent输出
-            investment_period: 投资周期 (LONG_TERM/MEDIUM_TERM/SHORT_TERM)
+            ticker: Stock ticker
+            fundamental_output: Fundamental agent output
+            technical_output: Technical agent output
+            sentiment_output: Sentiment agent output
+            risk_output: Risk agent output
+            investment_period: Investment period (LONG_TERM/MEDIUM_TERM/SHORT_TERM)
             
         Returns:
-            ArenaJudgeResult: 最终裁决结果
+            ArenaJudgeResult: Final judgment result
         """
         agent_outputs = [
             fundamental_output,
@@ -464,24 +453,12 @@ class ArenaJudge:
             risk_output
         ]
         
-        # 1. 确定投资周期
         horizon = self.determine_investment_horizon(ticker, investment_period)
-        
-        # 2. 智能权重分配
         weights = self.calculate_smart_weights(agent_outputs, horizon)
-        
-        # 3. 收集详细投票
         votes = self.collect_detailed_votes(agent_outputs, weights)
-        
-        # 4. 分析投票
         breakdown = self.analyze_voting(votes)
+        ai_result = self.ai_professional_judgment(ticker, votes, breakdown, horizon, weights)
         
-        # 5. AI专业裁决
-        ai_result = self.ai_professional_judgment(
-            ticker, votes, breakdown, horizon, weights
-        )
-        
-        # 6. 组装结果
         result = ArenaJudgeResult(
             ticker=ticker,
             analysis_date=datetime.now().strftime("%Y-%m-%d"),
