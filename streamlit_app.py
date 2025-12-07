@@ -69,6 +69,10 @@ try:
 except ImportError as e:
     SYSTEM_AVAILABLE = False
     IMPORT_ERROR = str(e)
+    # 添加这行来强制显示错误
+    st.error(f"Import Error: {IMPORT_ERROR}")
+    import traceback
+    st.code(traceback.format_exc())
 
 # ============================================================================
 # 主界面
