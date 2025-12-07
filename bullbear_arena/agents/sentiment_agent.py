@@ -3,7 +3,7 @@
 # bullbear_arena/agents/sentiment_agent.py
 # ============================================================================
 """
-情绪分析Agent - 💬 Sentiment Monitor
+情绪分析Agent - Sentiment Monitor
 
 专注于:
 - 新闻情感分析 (金融关键词NLP)
@@ -12,10 +12,10 @@
 - 分析师估值智能判断
 
 核心决策逻辑:
-1. EXTREME_FEAR市场情绪 → 自动SELL
-2. 价格超过目标价20% → 自动SELL
-3. EXTREME_GREED → SELL (防止追高)
-4. 低估值 + 正面情绪 → BUY
+1. EXTREME_FEAR市场情绪 -> 自动SELL
+2. 价格超过目标价20% -> 自动SELL
+3. EXTREME_GREED -> SELL (防止追高)
+4. 低估值 + 正面情绪 -> BUY
 5. 多维度规则引擎综合决策
 
 输出标准格式供Arena Judge裁判使用
@@ -29,38 +29,37 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from pydantic import BaseModel, Field
-from textblob import TextBlob
 
 # ============================================================================
 # 金融情感词典
 # ============================================================================
 
 POSITIVE_KEYWORDS = {
-    # 超强正面 (0.8-1.0)
+    # Super strong positive (0.8-1.0)
     'surge': 0.9, 'soar': 0.9, 'skyrocket': 1.0, 'boom': 0.85, 'breakout': 0.8,
-    # 强正面 (0.6-0.8)
+    # Strong positive (0.6-0.8)
     'rally': 0.75, 'beat': 0.7, 'exceed': 0.65, 'outperform': 0.7, 'upgrade': 0.75,
     'bullish': 0.8, 'strong': 0.6, 'record': 0.7, 'breakthrough': 0.75,
-    # 中正面 (0.4-0.6)
+    # Moderate positive (0.4-0.6)
     'gains': 0.5, 'growth': 0.55, 'profit': 0.5, 'success': 0.6, 'innovation': 0.55,
     'momentum': 0.5, 'optimistic': 0.6, 'opportunity': 0.45, 'expansion': 0.5,
-    # 弱正面 (0.2-0.4)
+    # Weak positive (0.2-0.4)
     'up': 0.3, 'rise': 0.4, 'increase': 0.3, 'gain': 0.4, 'positive': 0.4,
     'better': 0.35, 'improve': 0.4, 'recovery': 0.5, 'partnership': 0.35
 }
 
 NEGATIVE_KEYWORDS = {
-    # 超强负面 (-0.8 to -1.0)
+    # Super strong negative (-0.8 to -1.0)
     'crash': -1.0, 'collapse': -0.95, 'plunge': -0.9, 'plummet': -0.9, 
     'bankruptcy': -1.0, 'scandal': -0.85,
-    # 强负面 (-0.6 to -0.8)
+    # Strong negative (-0.6 to -0.8)
     'tumble': -0.75, 'decline': -0.6, 'bearish': -0.8, 'downgrade': -0.75,
     'crisis': -0.8, 'lawsuit': -0.7, 'investigation': -0.65, 'layoff': -0.7,
-    # 中负面 (-0.4 to -0.6)
+    # Moderate negative (-0.4 to -0.6)
     'fall': -0.5, 'drop': -0.5, 'weak': -0.5, 'loss': -0.6, 'miss': -0.65,
     'disappoint': -0.6, 'concern': -0.45, 'risk': -0.4, 'warning': -0.55,
     'threat': -0.6, 'debt': -0.45, 'struggle': -0.5,
-    # 弱负面 (-0.2 to -0.4)
+    # Weak negative (-0.2 to -0.4)
     'down': -0.3, 'decrease': -0.35, 'lower': -0.3, 'negative': -0.4,
     'worse': -0.4, 'pressure': -0.35, 'challenge': -0.3, 'volatility': -0.35
 }
@@ -71,54 +70,54 @@ NEGATIVE_KEYWORDS = {
 
 class NewsSentiment(BaseModel):
     """新闻情感分析"""
-    sentiment_score: float = Field(description="新闻情感评分 -1到1")
-    sentiment_label: str = Field(description="情感标签: VERY_POSITIVE/POSITIVE/NEUTRAL/NEGATIVE/VERY_NEGATIVE")
-    news_count: int = Field(description="分析的新闻数量")
-    positive_ratio: float = Field(description="正面新闻比例 0-1")
-    negative_ratio: float = Field(description="负面新闻比例 0-1")
-    recent_headlines: List[str] = Field(description="最近重要新闻标题")
-    sentiment_intensity: str = Field(description="情绪强度: EXTREME/STRONG/MODERATE/WEAK")
+    sentiment_score: float = Field(description="News sentiment score -1 to 1")
+    sentiment_label: str = Field(description="Sentiment label: VERY_POSITIVE/POSITIVE/NEUTRAL/NEGATIVE/VERY_NEGATIVE")
+    news_count: int = Field(description="Number of news analyzed")
+    positive_ratio: float = Field(description="Positive news ratio 0-1")
+    negative_ratio: float = Field(description="Negative news ratio 0-1")
+    recent_headlines: List[str] = Field(description="Recent important headlines")
+    sentiment_intensity: str = Field(description="Sentiment intensity: EXTREME/STRONG/MODERATE/WEAK")
     
 class SocialSentiment(BaseModel):
     """社交媒体情绪"""
-    social_score: float = Field(description="社交媒体情绪评分 -1到1")
-    discussion_volume: str = Field(description="讨论热度: VIRAL/HIGH/MEDIUM/LOW")
-    trending_topics: List[str] = Field(description="热门话题")
-    sentiment_trend: str = Field(description="情绪趋势: SURGING/IMPROVING/STABLE/DECLINING/COLLAPSING")
-    buzz_level: float = Field(description="热议程度 0-100")
+    social_score: float = Field(description="Social media sentiment score -1 to 1")
+    discussion_volume: str = Field(description="Discussion volume: VIRAL/HIGH/MEDIUM/LOW")
+    trending_topics: List[str] = Field(description="Trending topics")
+    sentiment_trend: str = Field(description="Sentiment trend: SURGING/IMPROVING/STABLE/DECLINING/COLLAPSING")
+    buzz_level: float = Field(description="Buzz level 0-100")
     
 class MarketSentiment(BaseModel):
     """市场情绪指标"""
-    fear_greed_index: float = Field(description="恐惧贪婪指数 0-100")
-    put_call_ratio: float = Field(description="看跌看涨比率")
-    volatility_index: float = Field(description="波动率指数")
-    market_mood: str = Field(description="市场情绪: EXTREME_FEAR/FEAR/NEUTRAL/GREED/EXTREME_GREED")
-    market_signal: str = Field(description="市场信号: STRONG_SELL/SELL/HOLD/BUY/STRONG_BUY")
+    fear_greed_index: float = Field(description="Fear & Greed Index 0-100")
+    put_call_ratio: float = Field(description="Put/Call ratio")
+    volatility_index: float = Field(description="Volatility index")
+    market_mood: str = Field(description="Market mood: EXTREME_FEAR/FEAR/NEUTRAL/GREED/EXTREME_GREED")
+    market_signal: str = Field(description="Market signal: STRONG_SELL/SELL/HOLD/BUY/STRONG_BUY")
     
 class AnalystValuation(BaseModel):
     """分析师估值"""
-    current_price: float = Field(description="当前价格")
-    target_price: float = Field(description="分析师目标价")
-    upside_potential: float = Field(description="上涨空间 (%)")
-    valuation_signal: str = Field(description="估值信号: OVERVALUED/FAIRLY_VALUED/UNDERVALUED")
-    price_vs_target: str = Field(description="价格相对位置")
-    analyst_rating: str = Field(description="分析师评级")
+    current_price: float = Field(description="Current price")
+    target_price: float = Field(description="Analyst target price")
+    upside_potential: float = Field(description="Upside potential (%)")
+    valuation_signal: str = Field(description="Valuation signal: OVERVALUED/FAIRLY_VALUED/UNDERVALUED")
+    price_vs_target: str = Field(description="Price vs target position")
+    analyst_rating: str = Field(description="Analyst rating")
 
 class EventImpact(BaseModel):
     """事件影响评估"""
-    recent_events: List[str] = Field(description="近期重大事件")
-    earnings_sentiment: str = Field(description="财报情绪: POSITIVE/NEUTRAL/NEGATIVE/PENDING")
-    analyst_valuation: AnalystValuation = Field(description="分析师估值分析")
-    institutional_activity: str = Field(description="机构活动: BUYING/SELLING/NEUTRAL")
+    recent_events: List[str] = Field(description="Recent major events")
+    earnings_sentiment: str = Field(description="Earnings sentiment: POSITIVE/NEUTRAL/NEGATIVE/PENDING")
+    analyst_valuation: AnalystValuation = Field(description="Analyst valuation analysis")
+    institutional_activity: str = Field(description="Institutional activity: BUYING/SELLING/NEUTRAL")
 
 class SentimentAnalysisResult(BaseModel):
     """情绪分析结果 - 标准输出格式"""
-    agent_name: str = "💬 Sentiment Monitor"
+    agent_name: str = "Sentiment Monitor"
     ticker: str
     analysis_date: str
-    score: float = Field(description="综合评分 0-100", ge=0, le=100)
-    recommendation: str = Field(description="投资建议: BUY/HOLD/SELL")
-    confidence: float = Field(description="置信度 0-1", ge=0, le=1)
+    score: float = Field(description="Overall score 0-100", ge=0, le=100)
+    recommendation: str = Field(description="Investment recommendation: BUY/HOLD/SELL")
+    confidence: float = Field(description="Confidence 0-1", ge=0, le=1)
     news_sentiment: NewsSentiment
     social_sentiment: SocialSentiment
     market_sentiment: MarketSentiment
@@ -126,7 +125,7 @@ class SentimentAnalysisResult(BaseModel):
     key_catalysts: List[str]
     key_concerns: List[str]
     analysis_summary: str
-    decision_rationale: str = Field(description="决策理由")
+    decision_rationale: str = Field(description="Decision rationale")
 
 # ============================================================================
 # 情绪分析Agent类
@@ -136,33 +135,33 @@ class SentimentAgent:
     """
     情绪分析智能体 - BullBear Arena
     
-    角色: 💬 Sentiment Monitor (情绪监测者)
-    职责: 从新闻、社交媒体和市场情绪角度评估投资者情绪
+    Role: Sentiment Monitor
+    Responsibility: Evaluate investor sentiment from news, social media, and market mood
     
-    核心决策逻辑:
-    1. EXTREME_FEAR市场情绪 → 自动SELL
-    2. 价格超过目标价20% → 自动SELL
-    3. EXTREME_GREED + 超买 → SELL
-    4. 多负面新闻 + 下跌趋势 → SELL
-    5. 强正面情绪 + 低估值 → BUY
+    Core decision logic:
+    1. EXTREME_FEAR market mood -> auto SELL
+    2. Price exceeds target by 20%+ -> auto SELL
+    3. EXTREME_GREED + overbought -> SELL
+    4. Multiple negative news + downtrend -> SELL
+    5. Strong positive sentiment + undervalued -> BUY
     """
     
     def __init__(self, api_key: str, api_url: str = "https://api.deepseek.com/v1/chat/completions"):
         """
-        初始化情绪分析Agent
+        Initialize Sentiment Analysis Agent
         
         Args:
-            api_key: DeepSeek API密钥
-            api_url: API端点
+            api_key: DeepSeek API key
+            api_url: API endpoint
         """
         self.api_key = api_key
         self.api_url = api_url
         self.model = "deepseek-chat"
-        self.agent_name = "💬 Sentiment Monitor"
+        self.agent_name = "Sentiment Monitor"
         self.agent_type = "sentiment"
     
     def call_deepseek_api(self, prompt: str) -> str:
-        """调用DeepSeek API"""
+        """Call DeepSeek API"""
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
@@ -186,12 +185,12 @@ class SentimentAgent:
         return result['choices'][0]['message']['content']
     
     def fetch_stock_info(self, ticker: str) -> Dict:
-        """获取股票基本信息"""
+        """Fetch stock basic info"""
         stock = yf.Ticker(ticker)
         return stock.info
     
     def fetch_news(self, ticker: str) -> List[Dict]:
-        """获取新闻数据"""
+        """Fetch news data"""
         try:
             stock = yf.Ticker(ticker)
             news = stock.news
@@ -202,14 +201,10 @@ class SentimentAgent:
             return []
     
     def analyze_text_sentiment_enhanced(self, text: str) -> float:
-        """增强版文本情感分析 (结合金融关键词)"""
+        """Enhanced text sentiment analysis (with financial keywords)"""
         text_lower = text.lower()
         
-        try:
-            blob = TextBlob(text)
-            base_sentiment = blob.sentiment.polarity
-        except:
-            base_sentiment = 0.0
+        base_sentiment = 0.0
         
         keyword_score = 0.0
         keyword_count = 0
@@ -232,7 +227,7 @@ class SentimentAgent:
         return max(-1, min(1, final_score))
     
     def analyze_news_sentiment(self, ticker: str) -> NewsSentiment:
-        """分析新闻情感"""
+        """Analyze news sentiment"""
         news_items = self.fetch_news(ticker)
         
         if not news_items:
@@ -242,7 +237,7 @@ class SentimentAgent:
                 news_count=0,
                 positive_ratio=0.0,
                 negative_ratio=0.0,
-                recent_headlines=["暂无新闻数据"],
+                recent_headlines=["No news data available"],
                 sentiment_intensity="WEAK"
             )
         
@@ -294,7 +289,7 @@ class SentimentAgent:
         )
     
     def analyze_social_sentiment(self, ticker: str, info: Dict) -> SocialSentiment:
-        """分析社交媒体情绪"""
+        """Analyze social media sentiment"""
         company_name = info.get('longName', ticker)
         volume = info.get('volume', 0)
         avg_volume = info.get('averageVolume', 1)
@@ -347,7 +342,7 @@ class SentimentAgent:
         )
     
     def analyze_market_sentiment(self, ticker: str, info: Dict) -> MarketSentiment:
-        """分析市场情绪指标"""
+        """Analyze market sentiment indicators"""
         stock = yf.Ticker(ticker)
         
         try:
@@ -403,7 +398,7 @@ class SentimentAgent:
         )
     
     def analyze_analyst_valuation(self, info: Dict) -> AnalystValuation:
-        """分析师估值分析"""
+        """Analyze analyst valuation"""
         current_price = info.get('regularMarketPrice', 0) or info.get('currentPrice', 0)
         target_price = info.get('targetMeanPrice', 0)
         analyst_rating = info.get('recommendationKey', 'hold')
@@ -413,20 +408,20 @@ class SentimentAgent:
             
             if current_price > target_price * 1.20:
                 valuation_signal = "OVERVALUED"
-                price_vs_target = f"超过目标价 {abs(upside_potential):.1f}% → 强烈卖出信号!"
+                price_vs_target = f"Exceeds target by {abs(upside_potential):.1f}% -> Strong sell signal!"
             elif current_price > target_price * 1.10:
                 valuation_signal = "OVERVALUED"
-                price_vs_target = f"超过目标价 {abs(upside_potential):.1f}% → 建议获利了结"
+                price_vs_target = f"Exceeds target by {abs(upside_potential):.1f}% -> Consider taking profit"
             elif current_price < target_price * 0.80:
                 valuation_signal = "UNDERVALUED"
-                price_vs_target = f"低于目标价 {upside_potential:.1f}% → 买入机会"
+                price_vs_target = f"Below target by {upside_potential:.1f}% -> Buy opportunity"
             else:
                 valuation_signal = "FAIRLY_VALUED"
-                price_vs_target = f"接近目标价 (上涨空间 {upside_potential:.1f}%)"
+                price_vs_target = f"Near target (upside {upside_potential:.1f}%)"
         else:
             upside_potential = 0.0
             valuation_signal = "FAIRLY_VALUED"
-            price_vs_target = "无目标价数据"
+            price_vs_target = "No target price data"
         
         return AnalystValuation(
             current_price=float(current_price),
@@ -438,12 +433,12 @@ class SentimentAgent:
         )
     
     def analyze_event_impact(self, ticker: str, info: Dict) -> EventImpact:
-        """分析事件影响"""
+        """Analyze event impact"""
         recent_events = []
         
         earnings_date = info.get('earningsDate', None)
         if earnings_date:
-            recent_events.append(f"财报日期: {earnings_date}")
+            recent_events.append(f"Earnings date: {earnings_date}")
             earnings_sentiment = "PENDING"
         else:
             earnings_sentiment = "NEUTRAL"
@@ -459,7 +454,7 @@ class SentimentAgent:
             institutional_activity = "NEUTRAL"
         
         if not recent_events:
-            recent_events.append("无重大事件")
+            recent_events.append("No major events")
         
         return EventImpact(
             recent_events=recent_events,
@@ -476,7 +471,7 @@ class SentimentAgent:
         event_impact: EventImpact
     ) -> Tuple[str, float, str]:
         """
-        最终决策逻辑 (规则引擎)
+        Final decision logic (rule engine)
         
         Returns:
             (recommendation, confidence, rationale)
@@ -485,60 +480,60 @@ class SentimentAgent:
         sell_signals = 0
         buy_signals = 0
         
-        # 规则1: 市场极度恐慌 → SELL
+        # Rule 1: Extreme market fear -> SELL
         if market_sentiment.market_mood == "EXTREME_FEAR":
             sell_signals += 3
-            reasons.append("市场极度恐慌 (EXTREME_FEAR)")
+            reasons.append("Extreme market fear (EXTREME_FEAR)")
         
-        # 规则2: 超过目标价20% → SELL
+        # Rule 2: Exceeds target by 20%+ -> SELL
         if event_impact.analyst_valuation.valuation_signal == "OVERVALUED":
             if event_impact.analyst_valuation.upside_potential < -15:
                 sell_signals += 3
-                reasons.append(f"价格超过目标价 {abs(event_impact.analyst_valuation.upside_potential):.1f}%")
+                reasons.append(f"Price exceeds target by {abs(event_impact.analyst_valuation.upside_potential):.1f}%")
             elif event_impact.analyst_valuation.upside_potential < -5:
                 sell_signals += 2
-                reasons.append("价格超过目标价")
+                reasons.append("Price exceeds target")
         
-        # 规则3: 市场极度贪婪 → SELL
+        # Rule 3: Extreme greed -> SELL
         if market_sentiment.market_mood == "EXTREME_GREED":
             sell_signals += 2
-            reasons.append("市场极度贪婪")
+            reasons.append("Extreme market greed")
         
-        # 规则4: 新闻极度负面 → SELL
+        # Rule 4: Very negative news -> SELL
         if news_sentiment.sentiment_label == "VERY_NEGATIVE":
             sell_signals += 2
-            reasons.append(f"新闻极度负面 (评分: {news_sentiment.sentiment_score:.2f})")
+            reasons.append(f"Very negative news (score: {news_sentiment.sentiment_score:.2f})")
         
-        # 规则5: 社交情绪崩溃 → SELL
+        # Rule 5: Collapsing social sentiment -> SELL
         if social_sentiment.sentiment_trend == "COLLAPSING":
             sell_signals += 2
-            reasons.append("社交情绪崩溃")
+            reasons.append("Collapsing social sentiment")
         
-        # 规则6: 低估值 + 正面情绪 → BUY
+        # Rule 6: Undervalued + positive sentiment -> BUY
         if event_impact.analyst_valuation.valuation_signal == "UNDERVALUED":
             if event_impact.analyst_valuation.upside_potential > 20:
                 buy_signals += 3
-                reasons.append(f"大幅低于目标价 {event_impact.analyst_valuation.upside_potential:.1f}%")
+                reasons.append(f"Significantly below target {event_impact.analyst_valuation.upside_potential:.1f}%")
             elif event_impact.analyst_valuation.upside_potential > 10:
                 buy_signals += 2
-                reasons.append("低于目标价")
+                reasons.append("Below target price")
         
-        # 规则7: 新闻极度正面 → BUY
+        # Rule 7: Very positive news -> BUY
         if news_sentiment.sentiment_label == "VERY_POSITIVE":
             buy_signals += 2
-            reasons.append(f"新闻极度正面 (评分: {news_sentiment.sentiment_score:.2f})")
+            reasons.append(f"Very positive news (score: {news_sentiment.sentiment_score:.2f})")
         
-        # 规则8: 社交情绪激增 → BUY
+        # Rule 8: Surging social sentiment -> BUY
         if social_sentiment.sentiment_trend == "SURGING":
             buy_signals += 1
-            reasons.append("社交情绪激增")
+            reasons.append("Surging social sentiment")
         
-        # 规则9: 市场恐慌 + 低估值 → BUY
+        # Rule 9: Market fear + undervalued -> BUY
         if market_sentiment.market_mood == "FEAR" and event_impact.analyst_valuation.upside_potential > 15:
             buy_signals += 2
-            reasons.append("市场恐慌但估值合理")
+            reasons.append("Market fear but fair valuation")
         
-        # 最终决策
+        # Final decision
         if sell_signals >= 3:
             recommendation = "SELL"
             confidence = min(0.95, 0.6 + sell_signals * 0.1)
@@ -554,43 +549,43 @@ class SentimentAgent:
         else:
             recommendation = "HOLD"
             confidence = 0.5
-            reasons.append("信号中性")
+            reasons.append("Neutral signals")
         
-        rationale = " | ".join(reasons) if reasons else "综合分析中性"
+        rationale = " | ".join(reasons) if reasons else "Comprehensive neutral analysis"
         
         return recommendation, confidence, rationale
     
     def generate_ai_analysis(self, ticker: str, metrics: Dict, rule_decision: Dict) -> Dict:
-        """使用AI生成深度分析"""
-        prompt = f"""你是一位资深的市场情绪分析师。基于以下数据对 {ticker} 进行深度分析:
+        """Generate AI analysis"""
+        prompt = f"""You are a senior market sentiment analyst. Provide in-depth analysis of {ticker} based on:
 
-【规则引擎决策】
-建议: {rule_decision['recommendation']}
-置信度: {rule_decision['confidence']:.1%}
-理由: {rule_decision['rationale']}
+Rule Engine Decision:
+Recommendation: {rule_decision['recommendation']}
+Confidence: {rule_decision['confidence']:.1%}
+Rationale: {rule_decision['rationale']}
 
-【详细数据】
-新闻情感: {json.dumps(metrics['news_sentiment'], indent=2, ensure_ascii=False)}
-社交情绪: {json.dumps(metrics['social_sentiment'], indent=2, ensure_ascii=False)}
-市场情绪: {json.dumps(metrics['market_sentiment'], indent=2, ensure_ascii=False)}
-事件影响: {json.dumps(metrics['event_impact'], indent=2, ensure_ascii=False)}
+Detailed Data:
+News Sentiment: {json.dumps(metrics['news_sentiment'], indent=2)}
+Social Sentiment: {json.dumps(metrics['social_sentiment'], indent=2)}
+Market Sentiment: {json.dumps(metrics['market_sentiment'], indent=2)}
+Event Impact: {json.dumps(metrics['event_impact'], indent=2)}
 
-请提供:
-1. 综合评分 (0-100)
-2. 投资建议 (BUY/HOLD/SELL)
-3. 置信度 (0-1)
-4. 3-5个关键催化剂
-5. 3-5个关键担忧
-6. 200字分析总结
+Provide:
+1. Overall score (0-100)
+2. Investment recommendation (BUY/HOLD/SELL)
+3. Confidence (0-1)
+4. 3-5 key catalysts
+5. 3-5 key concerns
+6. 200-word analysis summary
 
-JSON格式:
+JSON format:
 {{
   "score": 75.5,
   "recommendation": "BUY",
   "confidence": 0.85,
-  "catalysts": ["催化剂1", ...],
-  "concerns": ["担忧1", ...],
-  "summary": "分析总结..."
+  "catalysts": ["Catalyst 1", ...],
+  "concerns": ["Concern 1", ...],
+  "summary": "Analysis summary..."
 }}
 """
         
@@ -606,24 +601,24 @@ JSON格式:
             "score": score_map.get(rule_decision['recommendation'], 50),
             "recommendation": rule_decision['recommendation'],
             "confidence": rule_decision['confidence'],
-            "catalysts": ["规则引擎主导决策"],
-            "concerns": ["AI分析不可用"],
+            "catalysts": ["Rule engine driven decision"],
+            "concerns": ["AI analysis unavailable"],
             "summary": rule_decision['rationale']
         }
     
     def analyze(self, ticker: str, verbose: bool = False) -> SentimentAnalysisResult:
         """
-        执行完整的情绪分析
+        Execute complete sentiment analysis
         
         Args:
-            ticker: 股票代码
-            verbose: 是否打印详细过程
+            ticker: Stock ticker
+            verbose: Print detailed process
             
         Returns:
-            SentimentAnalysisResult: 标准化的分析结果
+            SentimentAnalysisResult: Standardized analysis result
         """
         if verbose:
-            print(f"[{self.agent_name}] 开始分析 {ticker}...")
+            print(f"[{self.agent_name}] Starting analysis for {ticker}...")
         
         info = self.fetch_stock_info(ticker)
         
@@ -669,18 +664,16 @@ JSON格式:
         )
         
         if verbose:
-            print(f"[{self.agent_name}] 分析完成: {result.recommendation} (评分: {result.score:.1f})")
+            print(f"[{self.agent_name}] Analysis complete: {result.recommendation} (Score: {result.score:.1f})")
         
         return result
     
     def get_arena_output(self, ticker: str) -> Dict:
         """
-        为Arena Judge提供标准化输出
-        
-        这是提供给最终裁判Agent的接口
+        Provide standardized output for Arena Judge
         
         Returns:
-            Dict: 竞技场标准格式,包含所有必要的投票信息
+            Dict: Arena standard format with all necessary voting info
         """
         result = self.analyze(ticker, verbose=False)
         return {
@@ -704,30 +697,3 @@ JSON格式:
                 "event_impact": result.event_impact.model_dump()
             }
         }
-```
-
----
-
-## ✅ 完成!
-
-### **文件特点**:
-- ✅ 移除了所有测试代码
-- ✅ 保留了超激进的决策逻辑
-- ✅ 标准化的Arena输出接口
-- ✅ 与前两个Agent保持一致的代码风格
-- ✅ 生产级别的代码质量
-
-### **核心功能**:
-1. 💬 **新闻情感分析** (80+金融关键词)
-2. 🐦 **社交媒体情绪** (成交量异常检测)
-3. 📊 **市场情绪指标** (恐惧贪婪指数)
-4. 💰 **分析师估值** (智能判断超买超卖)
-5. 🧠 **规则引擎** (9大决策规则)
-
-### **决策逻辑**:
-```
-EXTREME_FEAR → SELL
-超过目标价20% → SELL
-EXTREME_GREED → SELL
-低估值20%+ → BUY
-新闻极度正面 → BUY
