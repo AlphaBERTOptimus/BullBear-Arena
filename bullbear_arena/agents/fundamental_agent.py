@@ -261,33 +261,33 @@ class FundamentalAgent:
     
     def generate_ai_analysis(self, ticker: str, metrics: Dict) -> Dict:
         """使用AI生成深度分析"""
-        prompt = f"""你是一位资深的股票基本面分析师。请基于以下财务数据对 {ticker} 进行深度分析:
+        prompt = f"""You are a senior stock fundamental analyst. Please provide an in-depth analysis of {ticker} based on the following financial data:
 
-财务指标:
-{json.dumps(metrics['financial_metrics'], indent=2, ensure_ascii=False)}
+Financial Metrics:
+{json.dumps(metrics['financial_metrics'], indent=2)}
 
-现金流分析:
-{json.dumps(metrics['cash_flow'], indent=2, ensure_ascii=False)}
+Cash Flow Analysis:
+{json.dumps(metrics['cash_flow'], indent=2)}
 
-运营指标:
-{json.dumps(metrics['operational'], indent=2, ensure_ascii=False)}
+Operational Metrics:
+{json.dumps(metrics['operational'], indent=2)}
 
-请提供:
-1. 综合评分 (0-100)
-2. 投资建议 (BUY/HOLD/SELL)
-3. 置信度 (0-1)
-4. 3-5个关键优势
-5. 3-5个关键风险
-6. 200字左右的分析总结
+Please provide:
+1. Overall score (0-100)
+2. Investment recommendation (BUY/HOLD/SELL)
+3. Confidence level (0-1)
+4. 3-5 key strengths
+5. 3-5 key risks
+6. Analysis summary (about 200 words)
 
-以JSON格式返回,结构如下:
+Return in JSON format:
 {{
   "score": 75.5,
   "recommendation": "BUY",
   "confidence": 0.85,
-  "strengths": ["优势1", "优势2", ...],
-  "risks": ["风险1", "风险2", ...],
-  "summary": "分析总结..."
+  "strengths": ["Strength 1", "Strength 2", ...],
+  "risks": ["Risk 1", "Risk 2", ...],
+  "summary": "Analysis summary..."
 }}
 """
         
@@ -297,15 +297,15 @@ class FundamentalAgent:
                 result = json.loads(response_text)
                 return result
             else:
-                raise Exception("API返回为空")
+                raise Exception("API returned empty response")
         except Exception as e:
             return {
                 "score": 50,
                 "recommendation": "HOLD",
                 "confidence": 0.5,
-                "strengths": ["数据分析受限"],
-                "risks": ["分析不完整"],
-                "summary": "AI分析暂时不可用,建议人工复核。"
+                "strengths": ["Limited data analysis"],
+                "risks": ["Incomplete analysis"],
+                "summary": "AI analysis temporarily unavailable, please verify manually."
             }
     
     def analyze(self, ticker: str, verbose: bool = False) -> FundamentalAnalysisResult:
@@ -320,12 +320,12 @@ class FundamentalAgent:
             FundamentalAnalysisResult: 标准化的分析结果
         """
         if verbose:
-            print(f"[{self.agent_name}] 开始分析 {ticker}...")
+            print(f"[{self.agent_name}] Starting analysis for {ticker}...")
         
         # 1. 获取数据
         financial_data = self.fetch_financial_data(ticker)
         if not financial_data:
-            raise ValueError(f"无法获取 {ticker} 的财务数据")
+            raise ValueError(f"Cannot fetch financial data for {ticker}")
         
         # 2. 计算各项指标
         financial_metrics = self.calculate_financial_metrics(financial_data)
@@ -359,13 +359,13 @@ class FundamentalAgent:
         )
         
         if verbose:
-            print(f"[{self.agent_name}] 分析完成: {result.recommendation} (评分: {result.score:.1f})")
+            print(f"[{self.agent_name}] Analysis complete: {result.recommendation} (Score: {result.score:.1f})")
         
         return result
     
-    def get_output_for_ensemble(self, ticker: str) -> Dict:
+    def get_arena_output(self, ticker: str) -> Dict:
         """
-        为集成投票Agent提供标准化输出
+        为Arena Judge提供标准化输出
         
         Returns:
             Dict: 包含所有必要信息的字典
@@ -377,105 +377,13 @@ class FundamentalAgent:
             "recommendation": result.recommendation,
             "confidence": result.confidence,
             "summary": result.analysis_summary,
-            "detailed_data": result.model_dump()
+            "key_points": {
+                "strengths": result.key_strengths,
+                "risks": result.key_risks
+            },
+            "detailed_metrics": {
+                "financial": result.financial_metrics.model_dump(),
+                "cash_flow": result.cash_flow_analysis.model_dump(),
+                "operational": result.operational_metrics.model_dump()
+            }
         }
-```
-
----
-
-## 二、项目命名建议 🎯
-
-基于你的背景(银行首席技术官、200人团队、千万级调用量),我推荐以下命名:
-
-### **推荐方案:**
-
-#### 🏆 **1. QuantumEdge** (量子边缘)
-```
-寓意: 利用AI在金融市场获得量子级别的信息优势
-特点: 科技感强、国际化、易记
-```
-
-#### 🚀 **2. VortexAI** (漩涡AI)
-```
-寓意: 多Agent系统像漩涡一样汇聚智慧
-特点: 动感、富有力量、专业
-```
-
-#### 💎 **3. PrismAlpha** (棱镜阿尔法)
-```
-寓意: 像棱镜分解光线一样,多角度分析股票获取超额收益
-特点: 优雅、专业、富有深度
-```
-
-#### ⚡ **4. NexusQuant** (关联量化)
-```
-寓意: 多Agent连接(Nexus)形成量化决策网络
-特点: 专业、现代、技术感
-```
-
-#### 🎯 **5. ApexSignal** (顶点信号)
-```
-寓意: 捕捉市场最顶级的交易信号
-特点: 简洁、目标明确、专业
-```
-
-#### 🌟 **6. SynergyAI** (协同AI)
-```
-寓意: 多Agent协同产生1+1>2的效果
-特点: 强调团队合作、符合你的管理背景
-```
-
----
-
-### **个性化方案 (结合你的经历):**
-
-#### 🏦 **7. TitanQuant** (泰坦量化)
-```
-寓意: 银行级(Titan)的量化分析能力
-特点: 大气、稳重、权威
-```
-
-#### 🧠 **8. CogniTrade** (认知交易)
-```
-寓意: 基于AI认知能力的智能交易
-特点: 学术感、创新
-```
-
-#### 🔮 **9. OracleEdge** (神谕边缘)
-```
-寓意: AI像神谕一样预测市场
-特点: 神秘、智慧、专业
-```
-
----
-
-### **我的Top 3推荐:**
-
-1. **🥇 PrismAlpha** - 优雅专业,体现多维分析
-2. **🥈 QuantumEdge** - 科技前沿,符合AI特性  
-3. **🥉 NexusQuant** - 强调连接,突出多Agent架构
-
----
-
-## GitHub项目结构建议:
-```
-PrismAlpha/  (或你选择的名字)
-├── README.md
-├── requirements.txt
-├── config/
-│   └── config.yaml
-├── agents/
-│   ├── __init__.py
-│   ├── fundamental_agent.py      # ✅ 已完成
-│   ├── technical_agent.py         # 待开发
-│   ├── sentiment_agent.py         # 待开发
-│   └── risk_agent.py              # 待开发
-├── ensemble/
-│   └── voting_agent.py            # 最终裁判
-├── utils/
-│   ├── data_fetcher.py
-│   └── visualization.py
-├── tests/
-│   └── test_agents.py
-└── examples/
-    └── demo.ipynb
