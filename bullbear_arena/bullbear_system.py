@@ -1,15 +1,15 @@
 # ============================================================================
-# BullBear Arena - 统一系统入口
+# BullBear Arena - Unified System Entry
 # bullbear_arena/bullbear_system.py
 # ============================================================================
 """
-BullBear Arena 统一系统入口
+BullBear Arena Unified System Entry
 
-这是用户唯一需要交互的接口
+This is the only interface users need to interact with
 
-支持两种模式:
-1. ask() - 自由提问模式
-2. analyze() - 完整分析模式
+Supports two modes:
+1. ask() - Free question mode
+2. analyze() - Complete analysis mode
 """
 
 from typing import Dict
@@ -20,24 +20,24 @@ from typing import Dict
 
 class BullBearSystem:
     """
-    BullBear Arena 统一系统入口
+    BullBear Arena Unified System Entry
     
-    用户接口:
-    - system.ask(question) - 自由提问
-    - system.analyze(ticker, period) - 完整分析
+    User interface:
+    - system.ask(question) - Free questions
+    - system.analyze(ticker, period) - Complete analysis
     
-    内部流程:
-    1. QuestionRouter 分析问题
-    2. FlexibleExecutor 调用Agent
-    3. 返回结果
+    Internal process:
+    1. QuestionRouter analyzes question
+    2. FlexibleExecutor calls agents
+    3. Return results
     """
     
     def __init__(self, api_key: str):
         """
-        初始化BullBear系统
+        Initialize BullBear System
         
         Args:
-            api_key: DeepSeek API密钥
+            api_key: DeepSeek API key
         """
         from bullbear_arena.core.question_router import QuestionRouter
         from bullbear_arena.core.flexible_executor import FlexibleExecutor
@@ -49,14 +49,14 @@ class BullBearSystem:
         
         self.api_key = api_key
         
-        # 初始化4个Agent
+        # Initialize 4 agents
         self.fundamental_agent = FundamentalAgent(api_key)
         self.technical_agent = TechnicalAgent(api_key)
         self.sentiment_agent = SentimentAgent(api_key)
         self.risk_agent = RiskAgent(api_key)
         self.arena_judge = ArenaJudge(api_key)
         
-        # 初始化核心模块
+        # Initialize core modules
         self.question_router = QuestionRouter(api_key)
         self.executor = FlexibleExecutor(
             fundamental_agent=self.fundamental_agent,
@@ -68,25 +68,25 @@ class BullBearSystem:
     
     def ask(self, question: str, verbose: bool = False) -> Dict:
         """
-        自由提问模式
+        Free question mode
         
         Args:
-            question: 用户问题
-            verbose: 是否打印详细过程
+            question: User question
+            verbose: Print detailed process
             
         Returns:
-            Dict: 分析结果
+            Dict: Analysis result
         
         Examples:
-            system.ask("MU的PE怎么样?")
-            system.ask("NVDA技术指标如何?")
-            system.ask("比较MU和AMD")
-            system.ask("最近市场怎么样?")
+            system.ask("What's MU's PE ratio?")
+            system.ask("How are NVDA's technical indicators?")
+            system.ask("Compare MU and AMD")
+            system.ask("How's the market recently?")
         """
-        # Step 1: 问题路由
+        # Step 1: Question routing
         routing = self.question_router.analyze_question(question)
         
-        # Step 2: 执行分析
+        # Step 2: Execute analysis
         result = self.executor.execute(routing)
         
         return {
@@ -102,27 +102,27 @@ class BullBearSystem:
         verbose: bool = False
     ) -> Dict:
         """
-        完整分析模式
+        Complete analysis mode
         
         Args:
-            ticker: 股票代码
-            investment_period: 投资周期 (LONG_TERM/MEDIUM_TERM/SHORT_TERM)
-            verbose: 是否打印详细过程
+            ticker: Stock ticker
+            investment_period: Investment period (LONG_TERM/MEDIUM_TERM/SHORT_TERM)
+            verbose: Print detailed process
             
         Returns:
-            Dict: 完整分析结果
+            Dict: Complete analysis result
         
         Examples:
             system.analyze("AAPL", "LONG_TERM")
             system.analyze("TSLA", "MEDIUM_TERM")
         """
-        # 获取4个Agent的输出
+        # Get outputs from 4 agents
         fundamental_output = self.fundamental_agent.get_arena_output(ticker)
         technical_output = self.technical_agent.get_arena_output(ticker)
         sentiment_output = self.sentiment_agent.get_arena_output(ticker)
         risk_output = self.risk_agent.get_arena_output(ticker)
         
-        # Arena Judge最终裁决
+        # Arena Judge final judgment
         judge_result = self.arena_judge.judge(
             ticker=ticker,
             fundamental_output=fundamental_output,
