@@ -1,259 +1,406 @@
-# ============================================================================
-# BullBear Arena - 灵活执行器
-# bullbear_arena/core/flexible_executor.py
-# ============================================================================
 """
-灵活执行器
+Flexible Executor - Executes analysis based on routing decisions
 
-职责: 根据QuestionRouter的分析结果,实际调用对应的Agent
-
-支持:
-1. 单Agent查询
-2. 多Agent查询
-3. 完整分析流程
-4. 多股票对比 (2-5只)
-5. 宽泛市场问题
+Handles different execution modes:
+- Quick answers for simple questions
+- Single stock analysis
+- Multi-stock comparison
+- Market overview
 """
 
-from typing import Dict, List
+from typing import Dict, List, Any
 
-# ============================================================================
-# 灵活执行器
-# ============================================================================
 
 class FlexibleExecutor:
     """
-    灵活执行器
+    Executes agent calls based on routing decisions
     
-    根据问题路由结果,动态调用对应的Agent
+    Supports:
+    - Quick answers: Direct answers for simple factual questions
+    - Single stock: Call specific agents for one ticker
+    - Comparison: Compare multiple tickers across agents
+    - Market overview: General market sentiment
     """
     
-    def __init__(
-        self,
-        fundamental_agent,
-        technical_agent,
-        sentiment_agent,
-        risk_agent,
-        arena_judge=None
-    ):
+    def __init__(self, fundamental_agent, technical_agent, sentiment_agent, risk_agent, arena_judge):
         """
-        初始化执行器
+        Initialize executor with agents
         
         Args:
-            fundamental_agent: 基本面Agent实例
-            technical_agent: 技术面Agent实例
-            sentiment_agent: 情绪面Agent实例
-            risk_agent: 风险面Agent实例
-            arena_judge: Arena Judge实例 (可选)
+            fundamental_agent: Fundamental analysis agent
+            technical_agent: Technical analysis agent
+            sentiment_agent: Sentiment analysis agent
+            risk_agent: Risk analysis agent
+            arena_judge: Arena judge for final decisions
         """
-        self.fundamental_agent = fundamental_agent
-        self.technical_agent = technical_agent
-        self.sentiment_agent = sentiment_agent
-        self.risk_agent = risk_agent
-        self.arena_judge = arena_judge
-        
-        # Agent映射
-        self.agent_map = {
-            "fundamental": self.fundamental_agent,
-            "technical": self.technical_agent,
-            "sentiment": self.sentiment_agent,
-            "risk": self.risk_agent
+        self.agents = {
+            'fundamental': fundamental_agent,
+            'technical': technical_agent,
+            'sentiment': sentiment_agent,
+            'risk': risk_agent
         }
-        
-        # 配置
-        self.max_comparison_stocks = 5
+        self.arena_judge = arena_judge
     
-    def execute(self, routing) -> Dict:
+    def execute(self, routing) -> Dict[str, Any]:
         """
-        执行分析
+        Execute analysis based on routing decision
         
         Args:
-            routing: QuestionAnalysis对象
+            routing: RoutingDecision from QuestionRouter
             
         Returns:
-            Dict: 执行结果
+            Dict: Analysis results
         """
-        # 情况1: 宽泛市场问题
-        if not routing.tickers and routing.fallback_strategy == "sentiment_agent":
-            return self._handle_market_general(routing)
+        execution_mode = routing.execution_mode
         
-        # 情况2: 完整分析
-        if routing.question_type == "full_analysis":
-            return self._handle_full_analysis(routing)
-        
-        # 情况3: 单Agent查询
-        if len(routing.agents_needed) == 1 and len(routing.tickers) == 1:
-            return self._handle_single_agent(routing)
-        
-        # 情况4: 多Agent查询 (单股票)
-        if len(routing.agents_needed) > 1 and len(routing.tickers) == 1:
-            return self._handle_multiple_agents(routing)
-        
-        # 情况5: 对比分析
-        if routing.question_type == "comparison" or len(routing.tickers) > 1:
-            return self._handle_comparison(routing)
-        
-        # 情况6: 无法处理
-        return self._handle_unsupported(routing)
+        if execution_mode == "single":
+            return self._execute_single_stock(routing)
+        elif execution_mode == "comparison":
+            return self._execute_comparison(routing)
+        elif execution_mode == "market":
+            return self._execute_market_overview(routing)
+        else:
+            return {"error": f"Unknown execution mode: {execution_mode}"}
     
-    def _handle_market_general(self, routing) -> Dict:
-        """处理宽泛市场问题"""
-        return {
-            "execution_type": "market_general",
-            "question": routing.specific_request,
-            "response": f"关于'{routing.specific_request}'的市场分析",
-            "agents_used": ["sentiment"],
-            "data": {
-                "market_sentiment": "NEUTRAL",
-                "key_news": ["市场整体稳定", "投资者情绪中性"],
-                "summary": "市场整体分析摘要..."
-            }
-        }
-    
-    def _handle_full_analysis(self, routing) -> Dict:
-        """处理完整分析"""
-        if not routing.tickers:
-            return {"error": "完整分析需要指定股票代码"}
+    def _get_quick_answer(self, question: str, ticker: str, agent_type: str) -> str:
+        """
+        Get quick answer from specific agent
         
-        ticker = routing.tickers[0]
-        
-        # 调用所有4个Agent
-        agent_results = {}
-        for agent_type in ["fundamental", "technical", "sentiment", "risk"]:
-            agent = self.agent_map[agent_type]
-            agent_results[agent_type] = agent.get_arena_output(ticker)
-        
-        # 如果有Arena Judge,进行最终裁决
-        if self.arena_judge:
-            judge_result = self.arena_judge.judge(
-                ticker=ticker,
-                fundamental_output=agent_results["fundamental"],
-                technical_output=agent_results["technical"],
-                sentiment_output=agent_results["sentiment"],
-                risk_output=agent_results["risk"],
-                investment_period=routing.time_horizon
-            )
+        Args:
+            question: User question
+            ticker: Stock ticker
+            agent_type: Which agent to query (fundamental/technical/sentiment/risk)
             
-            return {
-                "execution_type": "full_analysis",
-                "ticker": ticker,
-                "agents_used": ["fundamental", "technical", "sentiment", "risk"],
-                "agent_results": agent_results,
-                "judge_result": judge_result.model_dump() if hasattr(judge_result, 'model_dump') else judge_result,
-                "final_recommendation": judge_result.final_recommendation,
-                "confidence": judge_result.confidence
-            }
+        Returns:
+            str: Quick answer or None if not applicable
+        """
+        agent = self.agents.get(agent_type)
+        if not agent:
+            return None
         
-        return {
-            "execution_type": "full_analysis",
-            "ticker": ticker,
-            "agents_used": ["fundamental", "technical", "sentiment", "risk"],
-            "agent_results": agent_results,
-            "note": "需要Arena Judge进行最终裁决"
-        }
+        # Check if agent has quick_query method
+        if hasattr(agent, 'quick_query'):
+            try:
+                return agent.quick_query(question, ticker)
+            except:
+                pass
+        
+        # Fallback: try to extract answer from full analysis
+        try:
+            result = agent.get_arena_output(ticker)
+            
+            question_lower = question.lower()
+            
+            # Fundamental questions
+            if agent_type == 'fundamental':
+                metrics = result.get('detailed_metrics', {})
+                
+                if 'pe' in question_lower:
+                    pe = metrics.get('pe_ratio')
+                    if pe:
+                        return f"{ticker}'s PE ratio is {pe:.2f}x"
+                
+                if 'roe' in question_lower:
+                    roe = metrics.get('roe')
+                    if roe:
+                        return f"{ticker}'s ROE is {roe:.2f}%"
+                
+                if 'valuation' in question_lower or 'estimate' in question_lower or '估值' in question_lower:
+                    rec = result.get('recommendation', 'N/A')
+                    score = result.get('score', 0)
+                    summary = result.get('summary', '')
+                    # Extract valuation opinion from summary
+                    if 'undervalued' in summary.lower():
+                        return f"{ticker} appears undervalued based on fundamental analysis (Score: {score:.1f}/100, Recommendation: {rec})"
+                    elif 'overvalued' in summary.lower():
+                        return f"{ticker} appears overvalued based on fundamental analysis (Score: {score:.1f}/100, Recommendation: {rec})"
+                    else:
+                        return f"{ticker}'s valuation: {rec} (Score: {score:.1f}/100). {summary[:200]}"
+            
+            # Technical questions
+            elif agent_type == 'technical':
+                metrics = result.get('detailed_metrics', {})
+                
+                if 'rsi' in question_lower:
+                    rsi = metrics.get('rsi')
+                    if rsi:
+                        status = "oversold" if rsi < 30 else "overbought" if rsi > 70 else "neutral"
+                        return f"{ticker}'s RSI is {rsi:.2f} ({status})"
+                
+                if 'macd' in question_lower:
+                    macd_signal = metrics.get('macd_signal')
+                    if macd_signal:
+                        return f"{ticker}'s MACD signal: {macd_signal}"
+                    else:
+                        rec = result.get('recommendation', 'N/A')
+                        return f"{ticker}'s technical indicators suggest {rec}"
+                
+                if 'technical' in question_lower or 'indicator' in question_lower or '技术' in question_lower:
+                    rec = result.get('recommendation', 'N/A')
+                    score = result.get('score', 0)
+                    summary = result.get('summary', '')
+                    return f"{ticker}'s technical analysis: {rec} (Score: {score:.1f}/100). {summary[:200]}"
+            
+            # Sentiment questions
+            elif agent_type == 'sentiment':
+                if 'news' in question_lower or 'sentiment' in question_lower or '新闻' in question_lower or '情绪' in question_lower:
+                    rec = result.get('recommendation', 'N/A')
+                    score = result.get('score', 0)
+                    summary = result.get('summary', '')
+                    return f"{ticker}'s market sentiment: {rec} (Score: {score:.1f}/100). {summary[:300]}"
+            
+            # Risk questions
+            elif agent_type == 'risk':
+                metrics = result.get('detailed_metrics', {})
+                
+                if 'volatility' in question_lower or '波动' in question_lower:
+                    vol = metrics.get('volatility')
+                    if vol:
+                        return f"{ticker}'s volatility is {vol:.2f}%"
+                
+                if 'risk' in question_lower or '风险' in question_lower:
+                    rec = result.get('recommendation', 'N/A')
+                    score = result.get('score', 0)
+                    summary = result.get('summary', '')
+                    return f"{ticker}'s risk assessment: {rec} (Score: {score:.1f}/100). {summary[:200]}"
+            
+            return None
+            
+        except Exception as e:
+            return None
     
-    def _handle_single_agent(self, routing) -> Dict:
-        """处理单Agent查询"""
-        agent_type = routing.agents_needed[0]
-        ticker = routing.tickers[0]
+    def _execute_single_stock(self, routing) -> Dict[str, Any]:
+        """Execute single stock analysis"""
+        ticker = routing.tickers[0] if routing.tickers else None
         
-        agent = self.agent_map[agent_type]
-        result = agent.get_arena_output(ticker)
+        if not ticker:
+            return {"error": "No ticker specified"}
         
-        return {
-            "execution_type": "single_agent",
-            "ticker": ticker,
-            "agent_type": agent_type,
-            "agents_used": [agent_type],
-            "result": result,
-            "summary": result.get("summary", "")
-        }
-    
-    def _handle_multiple_agents(self, routing) -> Dict:
-        """处理多Agent查询"""
-        ticker = routing.tickers[0]
+        question = getattr(routing, 'question', '')
         
-        agent_results = {}
+        # Try quick answer for single-agent questions
+        if question and len(routing.agents_needed) == 1:
+            agent_type = routing.agents_needed[0]
+            quick_answer = self._get_quick_answer(question, ticker, agent_type)
+            
+            if quick_answer:
+                return {
+                    "execution_type": "quick_answer",
+                    "ticker": ticker,
+                    "agent_type": agent_type,
+                    "answer": quick_answer,
+                    "summary": quick_answer
+                }
+        
+        # Full analysis for complex or multi-agent questions
+        results = {}
+        
+        # Call requested agents
         for agent_type in routing.agents_needed:
-            agent = self.agent_map[agent_type]
-            agent_results[agent_type] = agent.get_arena_output(ticker)
+            agent = self.agents.get(agent_type)
+            if agent:
+                try:
+                    results[agent_type] = agent.get_arena_output(ticker)
+                except Exception as e:
+                    results[agent_type] = {"error": str(e)}
+        
+        # Generate summary
+        summary = self._generate_single_summary(ticker, results, routing.agents_needed)
         
         return {
-            "execution_type": "multiple_agents",
+            "execution_type": "single_stock",
             "ticker": ticker,
-            "agents_used": routing.agents_needed,
-            "agent_results": agent_results
+            "agents_called": routing.agents_needed,
+            "results": results,
+            "summary": summary
         }
     
-    def _handle_comparison(self, routing) -> Dict:
-        """处理对比分析 (支持2-5只股票)"""
-        if len(routing.tickers) < 2:
-            return {"error": "对比分析需要至少2只股票"}
+    def _execute_comparison(self, routing) -> Dict[str, Any]:
+        """Execute multi-stock comparison"""
+        tickers = routing.tickers
         
-        if len(routing.tickers) > self.max_comparison_stocks:
-            return {
-                "error": f"对比分析最多支持{self.max_comparison_stocks}只股票"
-            }
+        if len(tickers) < 2:
+            return {"error": "Comparison requires at least 2 tickers"}
         
-        # 对每只股票调用所需的Agent
-        comparison_results = {}
-        for ticker in routing.tickers:
+        question = getattr(routing, 'question', '')
+        
+        # For focused comparison questions (e.g., "compare MU and AMD's PE")
+        if len(routing.agents_needed) == 1:
+            agent_type = routing.agents_needed[0]
+            comparison_result = self._quick_comparison(question, tickers, agent_type)
+            
+            if comparison_result:
+                return {
+                    "execution_type": "quick_comparison",
+                    "tickers": tickers,
+                    "agent_type": agent_type,
+                    "comparison": comparison_result,
+                    "summary": comparison_result
+                }
+        
+        # Full comparison for comprehensive analysis
+        all_results = {}
+        for ticker in tickers:
             ticker_results = {}
             for agent_type in routing.agents_needed:
-                agent = self.agent_map[agent_type]
-                ticker_results[agent_type] = agent.get_arena_output(ticker)
-            comparison_results[ticker] = ticker_results
+                agent = self.agents.get(agent_type)
+                if agent:
+                    try:
+                        ticker_results[agent_type] = agent.get_arena_output(ticker)
+                    except Exception as e:
+                        ticker_results[agent_type] = {"error": str(e)}
+            all_results[ticker] = ticker_results
         
-        # 生成对比摘要
-        comparison_summary = self._generate_comparison_summary(
-            comparison_results, 
-            routing.agents_needed
-        )
+        # Generate comparison summary
+        comparison_summary = self._generate_comparison_summary(tickers, all_results, routing.agents_needed)
         
         return {
             "execution_type": "comparison",
-            "tickers": routing.tickers,
-            "stock_count": len(routing.tickers),
-            "agents_used": routing.agents_needed,
-            "comparison_results": comparison_results,
+            "tickers": tickers,
+            "agents_called": routing.agents_needed,
+            "results": all_results,
             "comparison_summary": comparison_summary
         }
     
-    def _generate_comparison_summary(
-        self, 
-        comparison_results: Dict, 
-        agents_used: List[str]
-    ) -> Dict:
-        """生成对比摘要"""
-        summary = {
-            "rankings": {},
-            "best_performers": {},
-            "worst_performers": {}
-        }
+    def _quick_comparison(self, question: str, tickers: List[str], agent_type: str) -> str:
+        """
+        Quick comparison for focused questions
         
-        for agent_type in agents_used:
-            scores = {
-                ticker: results[agent_type].get("score", 0)
-                for ticker, results in comparison_results.items()
-            }
+        Args:
+            question: User question
+            tickers: List of tickers to compare
+            agent_type: Which agent to use
             
-            sorted_tickers = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        Returns:
+            str: Comparison result
+        """
+        try:
+            agent = self.agents.get(agent_type)
+            if not agent:
+                return None
             
-            summary["rankings"][agent_type] = [
-                {"ticker": ticker, "score": score}
-                for ticker, score in sorted_tickers
-            ]
+            # Get results for all tickers
+            ticker_results = {}
+            for ticker in tickers:
+                try:
+                    result = agent.get_arena_output(ticker)
+                    ticker_results[ticker] = result
+                except:
+                    ticker_results[ticker] = None
             
-            if sorted_tickers:
-                summary["best_performers"][agent_type] = sorted_tickers[0][0]
-                summary["worst_performers"][agent_type] = sorted_tickers[-1][0]
-        
-        return summary
+            # Extract comparison metric
+            question_lower = question.lower()
+            
+            if agent_type == 'fundamental':
+                if 'pe' in question_lower:
+                    comparison = []
+                    for ticker, result in ticker_results.items():
+                        if result:
+                            metrics = result.get('detailed_metrics', {})
+                            pe = metrics.get('pe_ratio')
+                            if pe:
+                                comparison.append(f"{ticker}: PE={pe:.2f}x")
+                    
+                    if comparison:
+                        ranked = sorted(comparison)
+                        return f"PE ratio comparison: {', '.join(ranked)}"
+                
+                # Generic fundamental comparison
+                comparison = []
+                for ticker, result in ticker_results.items():
+                    if result:
+                        rec = result.get('recommendation', 'N/A')
+                        score = result.get('score', 0)
+                        comparison.append({
+                            'ticker': ticker,
+                            'recommendation': rec,
+                            'score': score
+                        })
+                
+                comparison.sort(key=lambda x: x['score'], reverse=True)
+                result_text = "Fundamental comparison:\n"
+                for i, item in enumerate(comparison, 1):
+                    result_text += f"{i}. {item['ticker']}: {item['recommendation']} (Score: {item['score']:.1f}/100)\n"
+                
+                return result_text
+            
+            # Similar logic for other agent types
+            # ...
+            
+            return None
+            
+        except Exception as e:
+            return None
     
-    def _handle_unsupported(self, routing) -> Dict:
-        """处理不支持的请求"""
+    def _execute_market_overview(self, routing) -> Dict[str, Any]:
+        """Execute market overview (mainly sentiment)"""
+        results = {}
+        question = getattr(routing, 'question', '')
+        
+        # For market sentiment questions
+        if 'sentiment' in routing.agents_needed:
+            agent = self.agents.get('sentiment')
+            if agent:
+                try:
+                    # Use SPY as market proxy
+                    results['sentiment'] = agent.get_arena_output('SPY')
+                    
+                    # Extract sentiment summary
+                    summary = results['sentiment'].get('summary', '')
+                    return {
+                        "execution_type": "market_overview",
+                        "results": results,
+                        "summary": f"Market sentiment: {summary[:300]}"
+                    }
+                except Exception as e:
+                    results['sentiment'] = {"error": str(e)}
+        
+        summary = "Market overview analysis based on available data"
+        
         return {
-            "execution_type": "unsupported",
-            "error": "无法处理此类问题",
-            "suggestion": "请重新表述您的问题"
+            "execution_type": "market_overview",
+            "results": results,
+            "summary": summary
+        }
+    
+    def _generate_single_summary(self, ticker: str, results: Dict, agents_called: List[str]) -> str:
+        """Generate summary for single stock analysis"""
+        summary_parts = [f"Analysis of {ticker}:"]
+        
+        for agent_type in agents_called:
+            if agent_type in results and 'error' not in results[agent_type]:
+                data = results[agent_type]
+                rec = data.get('recommendation', 'N/A')
+                score = data.get('score', 0)
+                summary_parts.append(f"- {agent_type.title()}: {rec} (Score: {score:.1f})")
+        
+        return " ".join(summary_parts)
+    
+    def _generate_comparison_summary(self, tickers: List[str], all_results: Dict, agents_called: List[str]) -> Dict:
+        """Generate comparison summary across tickers"""
+        rankings = {}
+        
+        for agent_type in agents_called:
+            agent_rankings = []
+            
+            for ticker in tickers:
+                if ticker in all_results and agent_type in all_results[ticker]:
+                    data = all_results[ticker][agent_type]
+                    if 'error' not in data:
+                        score = data.get('score', 0)
+                        rec = data.get('recommendation', 'N/A')
+                        agent_rankings.append({
+                            'ticker': ticker,
+                            'score': score,
+                            'recommendation': rec
+                        })
+            
+            # Sort by score
+            agent_rankings.sort(key=lambda x: x['score'], reverse=True)
+            rankings[agent_type] = agent_rankings
+        
+        return {
+            "rankings": rankings,
+            "tickers_compared": tickers,
+            "agents_used": agents_called
         }
