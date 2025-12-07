@@ -12,7 +12,7 @@ BullBear Arena 统一系统入口
 2. analyze() - 完整分析模式
 """
 
-from typing import Dict, Optional
+from typing import Dict
 
 # ============================================================================
 # BullBear System
