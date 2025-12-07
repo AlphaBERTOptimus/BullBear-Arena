@@ -1,7 +1,5 @@
-"""
-BullBear Arena - Ensemble
-"""
+"""BullBear Arena - Ensemble Module"""
 
-from bullbear_arena.ensemble.arena_judge import ArenaJudge
+from .arena_judge import ArenaJudge
 
 __all__ = ["ArenaJudge"]
