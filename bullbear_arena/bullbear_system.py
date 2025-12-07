@@ -1,35 +1,23 @@
-# ============================================================================
-# BullBear Arena - Unified System Entry
-# bullbear_arena/bullbear_system.py
-# ============================================================================
 """
-BullBear Arena Unified System Entry
+BullBear Arena - Unified System Entry
 
-This is the only interface users need to interact with
+This is the main interface for users to interact with the system.
 
 Supports two modes:
-1. ask() - Free question mode
-2. analyze() - Complete analysis mode
+1. ask() - Free question mode (requires QuestionRouter)
+2. analyze() - Complete analysis mode (works standalone)
 """
 
 from typing import Dict
 
-# ============================================================================
-# BullBear System
-# ============================================================================
 
 class BullBearSystem:
     """
-    BullBear Arena Unified System Entry
+    BullBear Arena Unified System
     
-    User interface:
+    Main interface:
     - system.ask(question) - Free questions
     - system.analyze(ticker, period) - Complete analysis
-    
-    Internal process:
-    1. QuestionRouter analyzes question
-    2. FlexibleExecutor calls agents
-    3. Return results
     """
     
     def __init__(self, api_key: str):
@@ -39,13 +27,12 @@ class BullBearSystem:
         Args:
             api_key: DeepSeek API key
         """
-        from bullbear_arena.core.question_router import QuestionRouter
-        from bullbear_arena.core.flexible_executor import FlexibleExecutor
-        from bullbear_arena.agents.fundamental_agent import FundamentalAgent
-        from bullbear_arena.agents.technical_agent import TechnicalAgent
-        from bullbear_arena.agents.sentiment_agent import SentimentAgent
-        from bullbear_arena.agents.risk_agent import RiskAgent
-        from bullbear_arena.ensemble.arena_judge import ArenaJudge
+        # Import agents using relative imports
+        from .agents.fundamental_agent import FundamentalAgent
+        from .agents.technical_agent import TechnicalAgent
+        from .agents.sentiment_agent import SentimentAgent
+        from .agents.risk_agent import RiskAgent
+        from .ensemble.arena_judge import ArenaJudge
         
         self.api_key = api_key
         
@@ -56,19 +43,28 @@ class BullBearSystem:
         self.risk_agent = RiskAgent(api_key)
         self.arena_judge = ArenaJudge(api_key)
         
-        # Initialize core modules
-        self.question_router = QuestionRouter(api_key)
-        self.executor = FlexibleExecutor(
-            fundamental_agent=self.fundamental_agent,
-            technical_agent=self.technical_agent,
-            sentiment_agent=self.sentiment_agent,
-            risk_agent=self.risk_agent,
-            arena_judge=self.arena_judge
-        )
+        # Try to import core modules (optional for now)
+        try:
+            from .core.question_router import QuestionRouter
+            from .core.flexible_executor import FlexibleExecutor
+            
+            self.question_router = QuestionRouter(api_key)
+            self.executor = FlexibleExecutor(
+                fundamental_agent=self.fundamental_agent,
+                technical_agent=self.technical_agent,
+                sentiment_agent=self.sentiment_agent,
+                risk_agent=self.risk_agent,
+                arena_judge=self.arena_judge
+            )
+            self.has_core_modules = True
+        except ImportError:
+            self.question_router = None
+            self.executor = None
+            self.has_core_modules = False
     
     def ask(self, question: str, verbose: bool = False) -> Dict:
         """
-        Free question mode
+        Free question mode (requires core modules)
         
         Args:
             question: User question
@@ -76,13 +72,13 @@ class BullBearSystem:
             
         Returns:
             Dict: Analysis result
-        
-        Examples:
-            system.ask("What's MU's PE ratio?")
-            system.ask("How are NVDA's technical indicators?")
-            system.ask("Compare MU and AMD")
-            system.ask("How's the market recently?")
         """
+        if not self.has_core_modules:
+            return {
+                "error": "Free question mode requires QuestionRouter and FlexibleExecutor modules",
+                "suggestion": "Use analyze() method for direct stock analysis"
+            }
+        
         # Step 1: Question routing
         routing = self.question_router.analyze_question(question)
         
@@ -95,26 +91,17 @@ class BullBearSystem:
             "result": result
         }
     
-    def analyze(
-        self,
-        ticker: str,
-        investment_period: str = "LONG_TERM",
-        verbose: bool = False
-    ) -> Dict:
+    def analyze(self, ticker: str, investment_period: str = "LONG_TERM", verbose: bool = False) -> Dict:
         """
-        Complete analysis mode
+        Complete analysis mode (works standalone)
         
         Args:
-            ticker: Stock ticker
-            investment_period: Investment period (LONG_TERM/MEDIUM_TERM/SHORT_TERM)
+            ticker: Stock ticker symbol
+            investment_period: LONG_TERM / MEDIUM_TERM / SHORT_TERM
             verbose: Print detailed process
             
         Returns:
             Dict: Complete analysis result
-        
-        Examples:
-            system.analyze("AAPL", "LONG_TERM")
-            system.analyze("TSLA", "MEDIUM_TERM")
         """
         # Get outputs from 4 agents
         fundamental_output = self.fundamental_agent.get_arena_output(ticker)
